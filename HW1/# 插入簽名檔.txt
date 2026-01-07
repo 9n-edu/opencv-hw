@@ -1,0 +1,34 @@
+# 插入簽名檔
+sign = cv2.imread("signed.png", cv2.IMREAD_UNCHANGED)  # 讀入4通道 (RGBA)
+
+if sign.shape[2] == 4:
+    # 分離通道
+    b, g, r, a = cv2.split(sign)
+    sign_rgb = cv2.merge((b, g, r))
+    alpha = a / 255.0  # normalize 到 0~1
+else:
+    # 若沒有 alpha，就假設全不透明
+    sign_rgb = sign
+    alpha = np.ones(sign_rgb.shape[:2], dtype=float)
+
+# 縮放簽名檔
+max_width = img.shape[1] // 5
+sign_scale = max_width / sign_rgb.shape[1]
+new_size = (int(sign_rgb.shape[1] * sign_scale), int(sign_rgb.shape[0] * sign_scale))
+sign_rgb = cv2.resize(sign_rgb, new_size)
+alpha = cv2.resize(alpha, new_size)
+
+h_sign, w_sign = sign_rgb.shape[:2]
+x_offset = w - w_sign - 10
+y_offset = h - h_sign - 10
+
+# 在原圖上融合 (考慮透明度)
+for c in range(3):
+    img[y_offset:y_offset+h_sign, x_offset:x_offset+w_sign, c] = (
+        alpha * sign_rgb[:, :, c]
+        + (1 - alpha) * img[y_offset:y_offset+h_sign, x_offset:x_offset+w_sign, c]
+    )
+
+
+cv2.imshow('Signed Image', img)
+cv2.imwrite('signed_image.bmp', img) #簽名檔
